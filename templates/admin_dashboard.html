@@ -1,0 +1,124 @@
+{% extends 'app.html' %} {% block content %}
+<section class="cal-height bg-white">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="container sticky-top ">
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} d-flex align-items-center alert-dismissible fade show px-md-5" role="alert">
+      <h6 class="h6"> {{ message }} </h6>
+      <button type="button" class="btn-close py-md-3 px-md-5 fw-bold" data-bs-dismiss="alert"
+        aria-label="Close"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <div class="px-5 py-3">
+    <div class="row">
+      <!-- Your Captured Packets section -->
+      <div class="col-12">
+        <div class="mb-3">
+          <h2 class="h2 display-5 lora-italic text-center">Welcome</h2>
+          <hr class="border border-3 border-primary" />
+        </div>
+      </div>
+      <div class="col-md-12">
+        <!-- Add File form -->
+        <div class="border border-3 border-primary p-3 rounded-5">
+
+          <div class="row">
+            <div class="col-12">
+              <div class="d-flex align-items-center justify-content-between">
+                <h3 class="h3 fw-bold text-primary">User List</h3>
+                <div class="">
+                  <a href="{{ url_for('admin_add_user') }}" class="btn btn-primary fw-bold">
+                    <i class="bi bi-person-plus-fill"></i>
+                    Add User</a>
+                  <a href="/admin/logout" class="btn btn-outline-dark fw-bold my-3"><i class="bi bi-box-arrow-left"></i>
+                    Logout</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <table class="table table-hover table-border border primary">
+            <thead class="table-primary">
+              <tr class="text-white">
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for user in users %}
+              <tr>
+                <td>{{ user[0] }}</td>
+                <td>{{ user[1] }}</td>
+                <td>{{ user[2] }}</td>
+                <td>
+                  <!-- Add delete functionality here -->
+                  <form method="post" action="/admin/delete_user/{{ user[0] }}"
+                    >
+                    <button class="btn btn-outline-danger fw-bold" type="submit" value="Delete">
+                      <i class="bi bi-trash3-fill"></i>
+                      Delete
+                    </button>
+                  </form>
+
+                </td>
+              </tr>
+              {% endfor %}
+              {% if deletion_success %}
+              <div class="alert alert-success">
+                User deleted successfully!
+              </div>
+              {% endif %}
+
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock content %}
+
+<!-- <!DOCTYPE html>
+<html>
+  <head>
+    <title>Admin Dashboard</title>
+  </head>
+  <body>
+    <h1>Admin Dashboard</h1>
+    <a href="/admin/logout" class="btn btn-dark">Logout</a>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td>{{ user[0] }}</td>
+          <td>{{ user[1] }}</td>
+          <td>{{ user[2] }}</td>
+          <td>
+            <!-- Add delete functionality here 
+            <form method="post" action="/admin/delete_user/{{ user[0] }}">
+              <input type="submit" value="Delete" />
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <a href="/admin/add_user">Add User</a>
+  </body>
+</html> -->
