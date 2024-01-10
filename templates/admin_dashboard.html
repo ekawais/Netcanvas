@@ -41,7 +41,6 @@
                 <th>ID</th>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Password</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -51,7 +50,6 @@
                 <td>{{ user[0] }}</td>
                 <td>{{ user[1] }}</td>
                 <td>{{ user[2] }}</td>
-                <td>{{ user[3] }}</td>
                 <td>
                   <!-- Add delete functionality here -->
                   <form method="post" action="/admin/delete_user/{{ user[0] }}"

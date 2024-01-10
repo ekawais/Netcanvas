@@ -228,8 +228,13 @@ def admin_login():
         cursor.close()
 
         print(f"Email and IsAdmin : {admin}")
+        print(f"Password Admin : {bcrypt.checkpw(password.encode('utf-8'), admin[3].encode('utf-8'))}")
+
+        functions_list = dir(bcrypt)
+        print(functions_list)
 
         if admin and bcrypt.checkpw(password.encode('utf-8'), admin[3].encode('utf-8')):
+
             session['admin_id'] = admin[0]
             flash("Admin login successful!","success")
             return redirect(url_for('admin_dashboard'))
