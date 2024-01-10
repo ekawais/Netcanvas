@@ -1,4 +1,4 @@
-{% extends 'app.html' %} {% block content %}
+{% extends 'admin_app.html' %} {% block content %}
 <section class="background-radial-gradient overflow-hidden cal-height">
   <style>
     .background-radial-gradient {
@@ -126,7 +126,7 @@
                   </div>
                   <div class="form-outline mb-4">
                     {{ form.license_key.label(for="license_key") }}
-                    {{ form.license_key(id="license_key", class="form-control") }}
+                    {{ form.license_key(id="license_key", class="form-control", placeholder="e.g X000-X000-X000", autocomplete="off") }}
                     {% if form.license_key.errors %}
                         <ul>
                             {% for error in form.license_key.errors %}

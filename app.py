@@ -2,11 +2,12 @@ from flask import Flask, render_template, redirect, url_for, session, flash, req
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, ValidationError
-import bcrypt
+import bcrypt 
 from flask_mysqldb import MySQL
 from scapy.all import rdpcap, IP
 import re 
 import os
+
 
 
 app = Flask(__name__)
@@ -15,8 +16,8 @@ app = Flask(__name__)
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = ''
-app.config['MYSQL_DB'] = 'database'
-app.secret_key = 'your_secret_key_here'
+app.config['MYSQL_DB'] = 'netcanvas'
+app.secret_key = 'myFlaskNetCanvasApp'
 
 mysql = MySQL(app)
 
@@ -82,7 +83,14 @@ def password_checks(password):
 def index():
     if 'user_id' in session:
         return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+    else:
+        return redirect(url_for('login'))
+@app.route('/admin')
+def admin_index():
+    if 'admin_id' in session:
+        return redirect(url_for('admin_dashboard'))
+    else:
+        return redirect(url_for('admin_login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -130,6 +138,12 @@ def read_packets(path):
 @app.route('/start_capture', methods=['GET', 'POST'])
 def start_capture():
     if 'user_id' in session:
+        user_id = session['user_id']
+
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT * FROM users where id=%s",(user_id,))
+        user = cursor.fetchone()
+        cursor.close()
         if request.method == 'POST':
             pcapFile = request.files['pcap_file']
             if pcapFile:
@@ -137,14 +151,12 @@ def start_capture():
 
                 file_name = pcapFile.filename
 
-              
-
                 return render_template('captured_packets.html', packets=capture_packet)
             else:
                 flash('PCAP FILE NOT FOUND','danger')
                 return redirect(url_for('start_capture'))
         else:
-            return render_template('captured_packets.html') 
+            return render_template('captured_packets.html', user=user) 
     else:
         return redirect(url_for('login'))
 
@@ -153,11 +165,12 @@ def start_capture():
 def dashboard():
     if 'user_id' in session:
         user_id = session['user_id']
-
         cursor = mysql.connection.cursor()
         cursor.execute("SELECT * FROM users where id=%s",(user_id,))
         user = cursor.fetchone()
         cursor.close()
+        print(user)
+
         if user:
             return render_template('dashboard.html',user=user)
     return redirect(url_for('login'))
@@ -201,17 +214,20 @@ def admin_register():
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
-    if "admin_id" in session:
+    if 'admin_id' in session:
         return redirect(url_for('admin_dashboard'))
     form = AdminLoginForm()
     if form.validate_on_submit():
         email = form.email.data
         password = form.password.data
+        isAdmin= 1
 
         cursor = mysql.connection.cursor()
-        cursor.execute("SELECT * FROM admin WHERE email=%s", (email,))
+        cursor.execute("SELECT * FROM admin WHERE email=%s and isAdmin=%s", (email,isAdmin))
         admin = cursor.fetchone()
         cursor.close()
+
+        print(f"Email and IsAdmin : {admin}")
 
         if admin and bcrypt.checkpw(password.encode('utf-8'), admin[3].encode('utf-8')):
             session['admin_id'] = admin[0]
@@ -226,50 +242,63 @@ def admin_login():
 @app.route('/admin/dashboard')
 def admin_dashboard():
     if 'admin_id' in session:
+        admin_id = session['admin_id']
+        # For admin
+        cursor_admin = mysql.connection.cursor()
+        cursor_admin.execute("SELECT * FROM admin WHERE id=%s",(admin_id,))
+        admin = cursor_admin.fetchone()
+        cursor_admin.close()
+        # For User List
         cursor = mysql.connection.cursor()
         cursor.execute("SELECT * FROM users")
         users = cursor.fetchall()
         cursor.close()
+        
       
-        return render_template('admin_dashboard.html', users=users)
+        print(f"Admin Id and Data {admin}")
+       
+        return render_template('admin_dashboard.html', users=users, admin = admin)
     else:
         flash("Please log in as an admin.",'warning')
         return redirect(url_for('admin_login'))
     
 @app.route('/admin/add_user', methods=['GET', 'POST'])
 def admin_add_user():
-    cursor = mysql.connection.cursor()
+    if 'admin_id' in session:
 
-    cursor.execute("SELECT * FROM admin WHERE id=%s", (session['admin_id'],))
-    admin = cursor.fetchone()
-    form = RegisterForm()
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT * FROM admin WHERE id=%s", (session['admin_id'],))
+        admin = cursor.fetchone()
+        form = RegisterForm()
 
-    if form.validate_on_submit():
-        name = form.name.data
-        email = form.email.data
-        password = form.password.data
+        if form.validate_on_submit():
+            name = form.name.data
+            email = form.email.data
+            password = form.password.data
 
-        password_check_validation = password_checks(password)
+            password_check_validation = password_checks(password)
 
-        if password_check_validation == "Password is Valid":
-            # Check the email already exists in the database
-            cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-            existing_user = cursor.fetchone()
+            if password_check_validation == "Password is Valid":
+                # Check the email already exists in the database
+                cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+                existing_user = cursor.fetchone()
 
-            if existing_user:
-                flash("This email is already taken. Please use a different email.", 'danger')
+                if existing_user:
+                    flash("This email is already taken. Please use a different email.", 'danger')
+                else:
+                    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+                    cursor.execute("INSERT INTO users (name, email, password) VALUES (%s, %s, %s)", (name, email, hashed_password))
+                    mysql.connection.commit()
+                    flash("User added successfully!", 'success')
+                    return redirect(url_for('admin_dashboard'))
             else:
-                hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-                cursor.execute("INSERT INTO users (name, email, password) VALUES (%s, %s, %s)", (name, email, hashed_password))
-                mysql.connection.commit()
-                flash("User added successfully!", 'success')
-                return redirect(url_for('admin_dashboard'))
-        else:
-            flash(password_check_validation , 'danger')
-            return render_template('admin_add_user.html',form=form)
+                flash(password_check_validation , 'danger')
+                return render_template('admin_add_user.html',form=form)
 
-    cursor.close()
-    return render_template('admin_add_user.html', form=form)
+        cursor.close()
+        return render_template('admin_add_user.html', form=form,admin = admin)
+    flash("Please! login as Admin First!","danger")
+    return redirect(url_for('admin_login'))
 
 @app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
 def admin_delete_user(user_id):
